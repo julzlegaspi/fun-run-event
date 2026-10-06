@@ -1,8 +1,5 @@
-import { config } from "dotenv";
+import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
-
-// Same env file Next.js reads in development.
-config({ path: ".env.local", quiet: true });
 
 export default defineConfig({
   schema: "./src/db/schema",

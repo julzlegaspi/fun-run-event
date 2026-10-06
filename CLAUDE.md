@@ -29,7 +29,7 @@ npm run db:seed       # (re)insert the sample events; replaces rows with the sam
 
 There is no test runner configured yet.
 
-Env goes in `.env.local`: Next.js reads it, `drizzle.config.ts` loads it explicitly with `dotenv`, and `db:seed` passes it via `tsx --env-file`. Required: `DATABASE_URL` (Neon pooled connection string), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
+Env goes in `.env` (not `.env.local`): `drizzle.config.ts` loads it through `dotenv/config`, and `db:seed` passes it via `tsx --env-file`. Required: `DATABASE_URL` (Neon pooled connection string), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
 
 ## Architecture
 
