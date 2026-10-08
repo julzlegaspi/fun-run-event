@@ -8,6 +8,34 @@
       "when": 1791263493442,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791378543935,
+      "tag": "0001_registrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791381750656,
+      "tag": "0002_dashboard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791429268724,
+      "tag": "0003_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791437728233,
+      "tag": "0004_payouts",
+      "breakpoints": true
     }
   ]
 }

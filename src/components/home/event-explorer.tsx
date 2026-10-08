@@ -5,21 +5,25 @@ import { useState } from "react";
 import { EventCard } from "@/components/event-card";
 import type { EventCategory, RunEvent } from "@/lib/events";
 
-type Filter = "All" | "Free" | EventCategory;
+export type Filter = "All" | "Free" | EventCategory;
 
 export function EventExplorer({
   events,
   categories,
+  initialFilter = "All",
 }: {
   events: RunEvent[];
   categories: EventCategory[];
+  initialFilter?: Filter;
 }) {
-  const [filter, setFilter] = useState<Filter>("All");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
 
   const filters: Filter[] = [
     "All",
     "Free",
-    ...categories.filter((c) => events.some((e) => e.category === c)),
+    ...categories.filter(
+      (c) => c === filter || events.some((e) => e.category === c),
+    ),
   ];
 
   const visible = events.filter((event) => {

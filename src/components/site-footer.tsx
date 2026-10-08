@@ -5,15 +5,30 @@ import { LogoMark } from "@/components/icons";
 const columns = [
   {
     heading: "Runners",
-    links: ["Find a run", "Free runs", "Kids & family", "Running clubs"],
+    links: [
+      { label: "Find a run", href: "/events" },
+      { label: "Free runs", href: "/events?category=Free" },
+      { label: "Kids & family", href: "/events?category=Kids" },
+      { label: "Running clubs", href: "#" },
+    ],
   },
   {
     heading: "Organisers",
-    links: ["Host an event", "Pricing", "Race-day check-in", "Resources"],
+    links: [
+      { label: "Host an event", href: "/#host" },
+      { label: "Pricing", href: "#" },
+      { label: "Race-day check-in", href: "#" },
+      { label: "Resources", href: "#" },
+    ],
   },
   {
     heading: "Company",
-    links: ["About", "Help centre", "Privacy", "Terms"],
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Help centre", href: "/help" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+    ],
   },
 ];
 
@@ -40,11 +55,11 @@ export function SiteFooter() {
               {column.heading}
             </h2>
             <ul className="stack gap-2">
-              {column.links.map((label) => (
+              {column.links.map(({ label, href }) => (
                 <li key={label}>
-                  <a href="#" className="link-nav font-medium text-ink-muted">
+                  <Link href={href} className="link-nav font-medium text-ink-muted">
                     {label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -1,9 +1,10 @@
 import Link from "next/link";
 
+import { UserMenu } from "@/components/auth/user-menu";
 import { LogoMark, MenuIcon } from "@/components/icons";
 
 const nav = [
-  { href: "/#events", label: "Find a run" },
+  { href: "/events", label: "Find a run" },
   { href: "/#collections", label: "Collections" },
   { href: "/#host", label: "Host an event" },
 ];
@@ -29,10 +30,8 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <a href="#" className="btn btn-ghost btn-sm">
-            Sign in
-          </a>
-          <Link href="/#host" className="btn btn-primary btn-sm">
+          <UserMenu variant="desktop" />
+          <Link href="/sign-up?as=organizer" className="btn btn-primary btn-sm">
             Create event
           </Link>
         </div>
@@ -59,10 +58,8 @@ export function SiteHeader() {
             </nav>
             <hr className="divider my-2" />
             <div className="stack gap-2 p-1">
-              <a href="#" className="btn btn-secondary btn-sm w-full">
-                Sign in
-              </a>
-              <Link href="/#host" className="btn btn-primary btn-sm w-full">
+              <UserMenu variant="mobile" />
+              <Link href="/sign-up?as=organizer" className="btn btn-primary btn-sm w-full">
                 Create event
               </Link>
             </div>

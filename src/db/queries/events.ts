@@ -1,22 +1,25 @@
 import "server-only";
 
-import { asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
 import { cache } from "react";
 
 import { db } from "@/db";
 import { events, races } from "@/db/schema";
 import type { RunEvent } from "@/lib/events";
 
-const withRaces = {
+export const withRaces = {
   races: { orderBy: [asc(races.distanceKm)] },
 };
 
-type EventRow = typeof events.$inferSelect & {
+export type EventRow = typeof events.$inferSelect & {
   races: (typeof races.$inferSelect)[];
 };
 
+// Drafts only appear in the organizer dashboard.
+const published = eq(events.isPublished, true);
+
 // Map a DB row to the shape the UI components expect.
-function toRunEvent(row: EventRow): RunEvent {
+export function toRunEvent(row: EventRow): RunEvent {
   return {
     slug: row.slug,
     title: row.title,
@@ -49,6 +52,32 @@ function toRunEvent(row: EventRow): RunEvent {
 
 export async function getEvents() {
   const rows = await db.query.events.findMany({
+    where: published,
+    with: withRaces,
+    orderBy: [asc(events.startsAt)],
+  });
+  return rows.map(toRunEvent);
+}
+
+// Free-text search across the fields a runner would type: name, place,
+// organiser or category. An empty query returns every event.
+export async function searchEvents(query: string) {
+  const q = query.trim();
+  if (!q) return getEvents();
+
+  const pattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
+  const rows = await db.query.events.findMany({
+    where: and(
+      published,
+      or(
+        ilike(events.title, pattern),
+        ilike(events.venue, pattern),
+        ilike(events.area, pattern),
+        ilike(events.organizer, pattern),
+        ilike(events.distanceLabel, pattern),
+        sql`${events.category}::text ilike ${pattern}`,
+      ),
+    ),
     with: withRaces,
     orderBy: [asc(events.startsAt)],
   });
@@ -56,21 +85,39 @@ export async function getEvents() {
 }
 
 export async function getEventSlugs() {
-  return db.select({ slug: events.slug }).from(events);
+  return db.select({ slug: events.slug }).from(events).where(published);
 }
 
 // Cached per request so generateMetadata and the page share one query.
 export const getEventBySlug = cache(async (slug: string) => {
   const row = await db.query.events.findFirst({
-    where: eq(events.slug, slug),
+    where: and(eq(events.slug, slug), published),
     with: withRaces,
   });
   return row ? toRunEvent(row) : undefined;
 });
 
+// The event and one of its races for checkout; undefined if either is missing.
+// `eventId` is the DB id, which RunEvent deliberately leaves out.
+export const getCheckoutRace = cache(async (slug: string, raceId: string) => {
+  const row = await db.query.events.findFirst({
+    where: and(eq(events.slug, slug), published),
+    with: withRaces,
+  });
+  const race = row?.races.find((r) => r.id === raceId);
+  if (!row || !race) return undefined;
+  const event = toRunEvent(row);
+  return {
+    eventId: row.id,
+    event,
+    race: event.races.find((r) => r.id === race.id)!,
+  };
+});
+
 // The flagged event, falling back to the next one on the calendar.
 export async function getFeaturedEvent() {
   const row = await db.query.events.findFirst({
+    where: published,
     with: withRaces,
     orderBy: [desc(events.isFeatured), asc(events.startsAt)],
   });
@@ -80,7 +127,7 @@ export async function getFeaturedEvent() {
 // Runs to suggest at the bottom of a detail page: same category first.
 export async function getRelatedEvents(event: RunEvent, count = 4) {
   const rows = await db.query.events.findMany({
-    where: ne(events.slug, event.slug),
+    where: and(ne(events.slug, event.slug), published),
     with: withRaces,
     orderBy: [
       desc(sql`${events.category} = ${event.category}`),

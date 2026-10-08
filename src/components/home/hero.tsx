@@ -32,7 +32,7 @@ export function Hero() {
         </div>
 
         <form
-          action="#events"
+          action="/events"
           role="search"
           className="mt-8 grid w-full max-w-3xl gap-2 rounded-xl bg-surface p-2 shadow-overlay sm:grid-cols-[1fr_auto_auto] sm:items-center"
         >

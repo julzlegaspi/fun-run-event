@@ -71,7 +71,10 @@ export default async function EventPage({
             </li>
             <li aria-hidden="true">/</li>
             <li>
-              <Link href="/#events" className="hover:text-ink">
+              <Link
+                href={`/events?category=${encodeURIComponent(event.category)}`}
+                className="hover:text-ink"
+              >
                 {event.category}
               </Link>
             </li>
@@ -134,7 +137,11 @@ export default async function EventPage({
                   distances
                 </p>
               </div>
-              <TicketPicker races={event.races} defaultRaceId={headline.id} />
+              <TicketPicker
+                slug={event.slug}
+                races={event.races}
+                defaultRaceId={headline.id}
+              />
             </div>
           </aside>
 
@@ -304,7 +311,7 @@ export default async function EventPage({
         <div className="container-page stack gap-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 id="related-heading">More runs you might like</h2>
-            <Link href="/#events" className="link text-sm">
+            <Link href="/events" className="link text-sm">
               See all runs
             </Link>
           </div>

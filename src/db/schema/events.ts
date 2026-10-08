@@ -15,6 +15,8 @@ import {
 
 // Relative import: drizzle-kit loads this file without the `@/` path alias.
 import { EVENT_CATEGORIES, EVENT_STATUSES } from "../../lib/events";
+import { eventOrganizers } from "./organizers";
+import { payoutAccounts, payouts } from "./payouts";
 
 export const eventCategory = pgEnum("event_category", EVENT_CATEGORIES);
 export const eventStatus = pgEnum("event_status", EVENT_STATUSES);
@@ -39,6 +41,15 @@ export const events = pgTable(
     about: text("about").array().notNull().default(sql`'{}'::text[]`),
     included: text("included").array().notNull().default(sql`'{}'::text[]`),
     isFeatured: boolean("is_featured").notNull().default(false),
+    // Drafts are only visible in the organizer dashboard.
+    isPublished: boolean("is_published").notNull().default(false),
+    // Where the organizer's share goes; unset until an organizer adds one.
+    payoutAccountId: uuid("payout_account_id").references(
+      () => payoutAccounts.id,
+      { onDelete: "set null" },
+    ),
+    // Platform commission in basis points; null = PLATFORM_COMMISSION_PERCENT.
+    commissionBps: integer("commission_bps"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -47,7 +58,13 @@ export const events = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("events_starts_at_idx").on(table.startsAt)],
+  (table) => [
+    index("events_starts_at_idx").on(table.startsAt),
+    check(
+      "events_commission_bps_check",
+      sql`${table.commissionBps} between 0 and 5000`,
+    ),
+  ],
 );
 
 // One distance option within an event, each with its own ticket.
@@ -77,8 +94,14 @@ export const races = pgTable(
   ],
 );
 
-export const eventsRelations = relations(events, ({ many }) => ({
+export const eventsRelations = relations(events, ({ one, many }) => ({
   races: many(races),
+  organizers: many(eventOrganizers),
+  payouts: many(payouts),
+  payoutAccount: one(payoutAccounts, {
+    fields: [events.payoutAccountId],
+    references: [payoutAccounts.id],
+  }),
 }));
 
 export const racesRelations = relations(races, ({ one }) => ({

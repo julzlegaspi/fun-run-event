@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Collections } from "@/components/home/collections";
 import { EventExplorer } from "@/components/home/event-explorer";
 import { FeaturedEvent } from "@/components/home/featured-event";
@@ -32,9 +34,9 @@ export default async function Home() {
               <p className="eyebrow">Upcoming in the Philippines</p>
               <h2 id="events-heading">Runs worth setting an alarm for</h2>
             </div>
-            <a href="#events" className="link text-sm">
+            <Link href="/events" className="link text-sm">
               See all runs
-            </a>
+            </Link>
           </div>
           <EventExplorer events={events} categories={categories} />
         </div>

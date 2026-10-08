@@ -234,6 +234,7 @@ async function main() {
           imageUrl: image.src,
           imageAlt: image.alt,
           isFeatured: featured ?? false,
+          isPublished: true,
         })
         .returning({ id: events.id });
 

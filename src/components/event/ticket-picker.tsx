@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ArrowRightIcon } from "@/components/icons";
@@ -9,13 +10,14 @@ import {
   formatTime,
   type Race,
 } from "@/lib/events";
-
-const MAX_TICKETS = 6;
+import { MAX_RUNNERS, checkoutHref } from "@/lib/registrations";
 
 export function TicketPicker({
+  slug,
   races,
   defaultRaceId,
 }: {
+  slug: string;
   races: Race[];
   defaultRaceId: string;
 }) {
@@ -36,13 +38,13 @@ export function TicketPicker({
   }, []);
 
   const race = races.find((r) => r.id === raceId) ?? races[0];
-  const maxQuantity = Math.min(MAX_TICKETS, race.spotsLeft);
+  const maxQuantity = Math.min(MAX_RUNNERS, race.spotsLeft);
   const total = race.price * quantity;
 
   function selectRace(id: string) {
     const next = races.find((r) => r.id === id)!;
     setRaceId(id);
-    setQuantity((q) => Math.min(q, Math.min(MAX_TICKETS, next.spotsLeft)));
+    setQuantity((q) => Math.min(q, Math.min(MAX_RUNNERS, next.spotsLeft)));
   }
 
   return (
@@ -158,10 +160,23 @@ export function TicketPicker({
           </span>
         </div>
 
-        <button type="button" className="btn btn-primary btn-lg mt-4 w-full">
-          {race.price === 0 ? "Register free" : "Register now"}
-          <ArrowRightIcon />
-        </button>
+        {race.spotsLeft > 0 ? (
+          <Link
+            href={checkoutHref(slug, race.id, quantity)}
+            className="btn btn-primary btn-lg mt-4 w-full"
+          >
+            {race.price === 0 ? "Register free" : "Register now"}
+            <ArrowRightIcon />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-lg mt-4 w-full"
+            disabled
+          >
+            Sold out
+          </button>
+        )}
         <p className="meta mt-3 text-center text-xs">
           Free cancellation up to 14 days before race day.
         </p>

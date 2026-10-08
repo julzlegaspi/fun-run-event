@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Fun Run event registration app. Events and their races are read from Postgres; auth is wired up but no registration flow exists yet.
+Fun Run event registration app. Events and their races are read from Postgres; signed-in runners register through a checkout that pays via HitPay's hosted checkout.
 
 Stack: Next.js 16 (App Router, `src/` dir, TypeScript), React 19, Tailwind CSS v4 (via `@tailwindcss/postcss`), Better Auth (email + password), Drizzle ORM on Neon serverless Postgres. Path alias `@/*` → `src/*`.
 
@@ -25,11 +25,12 @@ npm run db:migrate     # apply migrations
 npm run db:push        # push schema directly (prototyping only)
 npm run db:studio
 npm run db:seed       # (re)insert the sample events; replaces rows with the same slugs
+npm run user:role -- <email> admin   # set a user's role, e.g. to bootstrap the first admin
 ```
 
 There is no test runner configured yet.
 
-Env goes in `.env` (not `.env.local`): `drizzle.config.ts` loads it through `dotenv/config`, and `db:seed` passes it via `tsx --env-file`. Required: `DATABASE_URL` (Neon pooled connection string), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
+Env goes in `.env` (not `.env.local`): `drizzle.config.ts` loads it through `dotenv/config`, and `db:seed` passes it via `tsx --env-file`. Required: `DATABASE_URL` (Neon pooled connection string), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. For paid checkout: `HITPAY_API_KEY`, `HITPAY_SALT` (webhook salt) and optional `HITPAY_ENV=production` (sandbox otherwise). Optional `PLATFORM_COMMISSION_PERCENT` (default 5). See `.env.example`.
 
 ## Architecture
 
@@ -38,6 +39,12 @@ Env goes in `.env` (not `.env.local`): `drizzle.config.ts` loads it through `dot
 - **Auth server** (`src/lib/auth.ts`): `betterAuth` instance using `drizzleAdapter(db, { provider: "pg" })`. `nextCookies()` must stay the **last** plugin so cookies can be set from server actions.
 - **Auth HTTP** (`src/app/api/auth/[...all]/route.ts`): catch-all exposing `auth` as `GET`/`POST` via `toNextJsHandler`; all Better Auth endpoints live under `/api/auth/*`.
 - **Auth client** (`src/lib/auth-client.ts`): `createAuthClient()` from `better-auth/react`, for client components.
+- **Checkout** (`src/app/events/[slug]/checkout/`): `?race=<id>&qty=<n>` page plus `checkoutAction`. `createOrder` (`src/db/queries/registrations.ts`) reserves `races.spots_left` and inserts the order + participants in one transaction; free orders are `paid` immediately, paid ones redirect to the HitPay payment request `url` (`src/lib/hitpay.ts`, `reference_number` = order id). Spots return to the race when an order is closed (`failed`/`expired`/`canceled`); pending orders older than 35 min are expired at the start of each checkout.
+- **Payment confirmation**: `src/app/api/webhooks/hitpay/route.ts` verifies the signature (JSON `Hitpay-Signature` header, or the legacy form `hmac` field) and calls `applyPaymentStatus`. `/orders/[id]` (and the dashboard's "Re-check payment") also poll HitPay through `reconcileOrder` while an order is pending, since the redirect can beat the webhook and webhooks can't reach localhost. Both paths are idempotent.
+- **Organizer dashboard** (`src/app/dashboard/`): access comes from `user.role` (`"participant" | "organizer" | "admin"`, a Better Auth `additionalField` with `input: false`, mirrored on the client via `inferAdditionalFields` in `auth-client.ts`) plus `event_organizers` (event to user). Organizers create events (becoming linked to them) and manage the events they're linked to; admins manage every event and are the only ones who can feature. Users become organizers by signing up at `/sign-up?as=organizer` (also the "Create event" link), via "Become an organizer" on `/account`, or by being added to an event; all go through `promoteToOrganizer`, which never demotes an admin. Pages and every server action check access through `requireOrganizer()` / `requireEventManager(slug)` in `src/lib/session.ts`, which 404 rather than 403. Queries live in `src/db/queries/{organizers,dashboard}.ts`.
+- **Payouts** (`src/db/queries/payouts.ts`, `src/lib/payouts.ts`, `/dashboard/payouts`): registrations are paid into the platform's HitPay account; organizers are paid afterwards with HitPay Transfers (beta, must be enabled on the account) to a beneficiary created from their bank details (`payout_accounts`, one per organizer; only the last 4 digits are stored). Each order snapshots `commission` at checkout from `events.commission_bps` (admin-only; null = `PLATFORM_COMMISSION_PERCENT`, default 5). Balance = paid orders' total − commission − payouts that are `processing`/`paid`. After the event date an admin releases it from `/dashboard/payouts/release`: `startPayout` locks the event row, inserts a `processing` payout, then calls HitPay. `transfer.*` webhooks settle it through `applyTransferStatus`. Only a 4xx marks a payout failed; a timeout/5xx leaves it processing (so it can't be paid twice) until an admin resolves it. The platform absorbs HitPay's fees.
+- **Drafts**: events have `is_published`; every public query in `src/db/queries/events.ts` filters on it, so drafts never reach the storefront or checkout.
+- **Race capacity isn't stored**: it's `spots_left` plus the spots held by paid and pending orders. Saving a capacity rewrites `spots_left` under a row lock. Races and events with any orders can't be deleted, because the FK cascade would delete the orders too.
 
 ## Database conventions
 

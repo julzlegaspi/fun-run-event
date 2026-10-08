@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import { ArrowRightIcon } from "@/components/icons";
 import { unsplash } from "@/lib/events";
@@ -17,10 +18,10 @@ export function HostCta() {
             check-in from one dashboard. Free for community runs.
           </p>
           <div className="flex flex-wrap gap-3">
-            <a href="#" className="btn btn-primary btn-lg">
+            <Link href="/sign-up?as=organizer" className="btn btn-primary btn-lg">
               Create your event
               <ArrowRightIcon />
-            </a>
+            </Link>
             <a
               href="#"
               className="btn btn-lg border-white/30 bg-transparent text-white hover:bg-white/10"
